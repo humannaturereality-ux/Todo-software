@@ -53,6 +53,80 @@
             opacity: 0.9;
         }
         
+        .greeting-section {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
+            padding: 25px;
+            color: white;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .greeting-section::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.05);
+            z-index: 1;
+        }
+        
+        .greeting-content {
+            position: relative;
+            z-index: 2;
+        }
+        
+        .greeting-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            display: block;
+        }
+        
+        .greeting-text {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+        }
+        
+        .motivational-text {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            font-weight: 500;
+            margin-bottom: 0;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+        }
+        
+        .name-display {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 5px 15px;
+            border-radius: 50px;
+            margin-top: 10px;
+            font-weight: 600;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .name-edit-btn {
+            background: rgba(255, 255, 255, 0.3);
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            margin-left: 8px;
+            color: white;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+        
+        .name-edit-btn:hover {
+            background: rgba(255, 255, 255, 0.5);
+            transform: scale(1.1);
+        }
+        
         .stats-container {
             display: flex;
             justify-content: space-around;
@@ -232,6 +306,16 @@
             to { opacity: 1; transform: translateY(0); }
         }
         
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
         .footer {
             text-align: center;
             padding: 15px;
@@ -244,6 +328,14 @@
         @media (max-width: 576px) {
             .app-header h1 {
                 font-size: 1.8rem;
+            }
+            
+            .greeting-text {
+                font-size: 1.5rem;
+            }
+            
+            .motivational-text {
+                font-size: 1rem;
             }
             
             .input-section {
@@ -262,6 +354,20 @@
             <div class="app-header">
                 <h1><i class="bi bi-check2-circle"></i> Todo Master</h1>
                 <p>Your personal task management solution</p>
+            </div>
+            
+            <div class="greeting-section">
+                <div class="greeting-content">
+                    <i class="bi bi-emoji-smile greeting-icon"></i>
+                    <div class="greeting-text" id="greeting-text">Good Morning!</div>
+                    <div class="motivational-text" id="motivational-text">Let's make today productive and amazing!</div>
+                    <div class="name-display">
+                        <span id="user-name">Your Name</span>
+                        <button class="name-edit-btn" id="name-edit-btn">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
             
             <div class="stats-container">
@@ -333,6 +439,25 @@
         </div>
     </div>
 
+    <!-- Edit Name Modal -->
+    <div class="modal fade" id="editNameModal" tabindex="-1" aria-labelledby="editNameModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editNameModalLabel">Enter Your Name</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" class="form-control" id="edit-name-input" placeholder="Your Name">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="save-name-btn">Save Name</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // DOM Elements
@@ -347,13 +472,53 @@
         const editTaskInput = document.getElementById('edit-task-input');
         const editTaskId = document.getElementById('edit-task-id');
         const saveTaskBtn = document.getElementById('save-task-btn');
+        const greetingText = document.getElementById('greeting-text');
+        const motivationalText = document.getElementById('motivational-text');
+        const userNameEl = document.getElementById('user-name');
+        const nameEditBtn = document.getElementById('name-edit-btn');
+        const editNameModal = new bootstrap.Modal(document.getElementById('editNameModal'));
+        const editNameInput = document.getElementById('edit-name-input');
+        const saveNameBtn = document.getElementById('save-name-btn');
 
         // State
         let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
         let currentFilter = 'all';
+        let userName = localStorage.getItem('userName') || 'Your Name';
+        const motivationalMessages = {
+            morning: [
+                "Rise and shine! Let's conquer the day!",
+                "Good morning! A new day means new opportunities!",
+                "Morning! Time to make today amazing!",
+                "Hello sunshine! Let's get things done!"
+            ],
+            afternoon: [
+                "Afternoon power! Keep that momentum going!",
+                "You're doing great! Keep up the good work!",
+                "Afternoon energy boost! You've got this!",
+                "Productivity time! Let's finish strong!"
+            ],
+            evening: [
+                "Evening focus! Let's wrap up the day strong!",
+                "You're on the home stretch! Finish strong!",
+                "Evening productivity! Almost there!",
+                "Keep going! The finish line is in sight!"
+            ],
+            night: [
+                "Night owl mode! Let's get things done!",
+                "Late night productivity! You're amazing!",
+                "Burning the midnight oil! Keep it up!",
+                "Night focus! You're unstoppable!"
+            ]
+        };
 
         // Initialize the app
         function init() {
+            // Set user name
+            userNameEl.textContent = userName;
+            
+            // Set greeting based on time of day
+            setGreeting();
+            
             renderTasks();
             updateStats();
             
@@ -376,6 +541,77 @@
             });
             
             saveTaskBtn.addEventListener('click', saveTaskEdit);
+            
+            // Name editing
+            nameEditBtn.addEventListener('click', () => {
+                editNameInput.value = userName;
+                editNameModal.show();
+            });
+            
+            saveNameBtn.addEventListener('click', saveUserName);
+            
+            // Add pulse animation to greeting icon periodically
+            setInterval(() => {
+                const icon = document.querySelector('.greeting-icon');
+                icon.classList.add('pulse');
+                setTimeout(() => {
+                    icon.classList.remove('pulse');
+                }, 2000);
+            }, 10000);
+        }
+
+        // Set greeting based on time of day
+        function setGreeting() {
+            const hour = new Date().getHours();
+            let timeOfDay, greeting, messages;
+            
+            if (hour < 12) {
+                timeOfDay = 'morning';
+                greeting = 'Good Morning';
+            } else if (hour < 17) {
+                timeOfDay = 'afternoon';
+                greeting = 'Good Afternoon';
+            } else if (hour < 21) {
+                timeOfDay = 'evening';
+                greeting = 'Good Evening';
+            } else {
+                timeOfDay = 'night';
+                greeting = 'Hello Night Owl';
+            }
+            
+            // Update greeting text
+            greetingText.textContent = `${greeting},`;
+            
+            // Select random motivational message
+            messages = motivationalMessages[timeOfDay];
+            const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+            motivationalText.textContent = randomMessage;
+            
+            // Update greeting icon based on time of day
+            const icon = document.querySelector('.greeting-icon');
+            if (timeOfDay === 'morning') {
+                icon.className = 'bi bi-sun greeting-icon';
+            } else if (timeOfDay === 'afternoon') {
+                icon.className = 'bi bi-brightness-high greeting-icon';
+            } else if (timeOfDay === 'evening') {
+                icon.className = 'bi bi-moon-stars greeting-icon';
+            } else {
+                icon.className = 'bi bi-moon greeting-icon';
+            }
+        }
+
+        // Save user name
+        function saveUserName() {
+            const newName = editNameInput.value.trim();
+            if (newName) {
+                userName = newName;
+                userNameEl.textContent = userName;
+                localStorage.setItem('userName', userName);
+                editNameModal.hide();
+                
+                // Update greeting to include new name
+                setGreeting();
+            }
         }
 
         // Add a new task
